@@ -95,6 +95,8 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addWidget(self.groupBox)
         spacerItem = QtWidgets.QSpacerItem(160, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
         self.verticalLayout_2.addItem(spacerItem)
+        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_2.addItem(spacerItem1)
         self.btn_check_event = QtWidgets.QPushButton(self.centralwidget)
         self.btn_check_event.setEnabled(False)
         self.btn_check_event.setObjectName("btn_check_event")
