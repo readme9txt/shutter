@@ -6,20 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>496</width>
-    <height>195</height>
+    <width>523</width>
+    <height>268</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>0</width>
-    <height>0</height>
+    <width>523</width>
+    <height>268</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>500</width>
-    <height>195</height>
+    <width>16777215</width>
+    <height>16777215</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -78,20 +78,59 @@
        <widget class="QGroupBox" name="groupBox">
         <property name="minimumSize">
          <size>
-          <width>0</width>
-          <height>0</height>
+          <width>170</width>
+          <height>125</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>170</width>
+          <height>125</height>
          </size>
         </property>
         <property name="layoutDirection">
          <enum>Qt::LeftToRight</enum>
         </property>
         <property name="title">
-         <string>参数</string>
+         <string>拍摄参数</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_4">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <item>
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>B门</string>
+             </property>
+            </widget>
+           </item>
+           <item alignment="Qt::AlignVCenter">
+            <widget class="QCheckBox" name="cb_bulb">
+             <property name="minimumSize">
+              <size>
+               <width>69</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>69</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="checkable">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
@@ -100,12 +139,12 @@
               <string>单张曝光</string>
              </property>
              <property name="alignment">
-              <set>Qt::AlignCenter</set>
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
              </property>
             </widget>
            </item>
-           <item>
-            <widget class="QComboBox" name="cb_exposure">
+           <item alignment="Qt::AlignVCenter">
+            <widget class="QComboBox" name="cbl_exposure">
              <property name="minimumSize">
               <size>
                <width>69</width>
@@ -130,11 +169,11 @@
               <string>拍摄数量</string>
              </property>
              <property name="alignment">
-              <set>Qt::AlignCenter</set>
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
              </property>
             </widget>
            </item>
-           <item>
+           <item alignment="Qt::AlignVCenter">
             <widget class="QSpinBox" name="sp_num">
              <property name="minimumSize">
               <size>
@@ -165,11 +204,21 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>150</width>
+          <width>160</width>
           <height>10</height>
          </size>
         </property>
        </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_check_event">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>检查事件</string>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QPushButton" name="btn_start">
@@ -179,7 +228,7 @@
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>48</height>
+          <height>46</height>
          </size>
         </property>
         <property name="maximumSize">
@@ -202,7 +251,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>496</width>
+     <width>523</width>
      <height>23</height>
     </rect>
    </property>
