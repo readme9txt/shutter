@@ -17,6 +17,20 @@ class Camera:
         self.camera = gp.Camera()
         self.camera.init()
 
+    def get_camera_model(self):
+        camera_config = self.camera.get_config()
+        # get the camera model
+        OK, camera_model = gp.gp_widget_get_child_by_name(
+            camera_config, 'cameramodel')
+        if OK < gp.GP_OK:
+            OK, camera_model = gp.gp_widget_get_child_by_name(
+                camera_config, 'model')
+        if OK >= gp.GP_OK:
+            camera_model = camera_model.get_value()
+        else:
+            camera_model = ''
+        return camera_model
+
     def capture(self):
         self.is_capture = True
         # 拍照

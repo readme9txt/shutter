@@ -12,34 +12,42 @@ from shutter_qt5 import Ui_MainWindow
 
 
 class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
+    bulb_exposure_time = {
+        '1min': 1000 * 60, '1min30s': 1000 * 90, '2min': 1000 * 120, '2min30s': 1000 * 150,
+        '3min': 1000 * 180, '5min': 1000 * 300, '6min': 1000 * 360, '8min': 1000 * 480,
+        '10min': 1000 * 600
+    }
+    exposure_time = {
+        '0.4s': '4/10', '0.5s': '5/10', '0.6s': '6/10', '0.8s': '8/10',
+        '1s': '10/10', '1.3s': '13/10', '1.6s': '16/10', '2s': '20/10',
+        '2.5s': '25/10', '3.2s': '32/10', '4s': '40/10', '5s': '50/10',
+        '6s': '60/10', '8s': '80/10', '10s': '100/10', '13s': '130/10',
+        '15s': '150/10', '20s': '200/10', '25s': '250/10', '30s': '300/10'
+    }
+
     def __init__(self):
         super(ShutterWindows, self).__init__()
         self.setupUi(self)
         self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, False)
-        second = 1000
-        self.exposure_time = {
-            '1/100s': int(second / 100),
-            '1/10s': int(second / 10),
-            '1s': second,
-            '3s': second * 3,
-            '5s': second * 5,
-            '10s': second * 10,
-            '15s': second * 15,
-            '30s': second * 30,
-            '1min': second * 60,
-            '1min30s': second * 90,
-            '2min': second * 120,
-            '2min30s': second * 150,
-            '3min': second * 180,
-            '5min': second * 300
-        }
-        self.cb_exposure.addItems(self.exposure_time.keys())
         self.sp_num.setMinimum(1)
-        self.btn_start.clicked.connect(self.on_start_click)
-        self.action_connect.triggered.connect(self.on_action_connect)
+        self.cbl_exposure.addItems(self.exposure_time.keys())
+
         self.is_connect = False
         self.is_capturing = False
+        self.camera_model = ''
+        # 点击事件
+        self.btn_start.clicked.connect(self.on_start_click)
+        self.action_connect.triggered.connect(self.on_action_connect)
+        self.cb_bulb.stateChanged.connect(self.on_blub_state_change)
         self.camera = Camera(os.getcwd())
+
+    def enabled(self):
+        self.btn_check_event.setEnabled(True)
+        self.btn_start.setEnabled(True)
+
+    def disabled(self):
+        self.btn_check_event.setEnabled(False)
+        self.btn_start.setEnabled(False)
 
     def on_start_click(self):
         if not self.is_capturing:
@@ -55,13 +63,27 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             try:
                 self.camera.connect()
                 self.action_connect.setText("断开连接")
-                self.is_connect = not self.is_connect
+                self.camera_model = self.camera.get_camera_model()
+                self.output('{} 已连接'.format(self.camera_model))
+                self.enabled()
+                self.is_connect = True
             except gp.GPhoto2Error as e:
-                self.output('{}'.format(e), QColor('red'))
+                self.output('连接设备遇到问题: {}'.format(e), QColor('red'))
+                return
         else:  # 断开设备
             self.camera.disconnect()
+            self.output('{} 断开连接'.format(self.camera_model))
             self.action_connect.setText("连接设备")
-            self.is_connect = not self.is_connect
+            self.disabled()
+            self.is_connect = False
+
+    def on_blub_state_change(self):
+        if self.cb_bulb.isChecked():
+            self.cbl_exposure.clear()
+            self.cbl_exposure.addItems(self.bulb_exposure_time.keys())
+        else:
+            self.cbl_exposure.clear()
+            self.cbl_exposure.addItems(self.exposure_time.keys())
 
     def output(self, text, color=QColor('black')):
         time = datetime.now().strftime("%H:%M:%S")
