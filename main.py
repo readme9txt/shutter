@@ -1,10 +1,13 @@
+import os
 import sys
 from datetime import datetime
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QColor, QTextOption
 from PyQt5.QtWidgets import QApplication
 
+import gphoto2 as gp
+from camera import Camera
 from shutter_qt5 import Ui_MainWindow
 
 
@@ -12,6 +15,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(ShutterWindows, self).__init__()
         self.setupUi(self)
+        self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, False)
         second = 1000
         self.exposure_time = {
             '1/100s': int(second / 100),
@@ -31,11 +35,11 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         }
         self.cb_exposure.addItems(self.exposure_time.keys())
         self.sp_num.setMinimum(1)
-        self.tb_log.setWordWrapMode(QTextOption.NoWrap)
         self.btn_start.clicked.connect(self.on_start_click)
         self.action_connect.triggered.connect(self.on_action_connect)
         self.is_connect = False
         self.is_capturing = False
+        self.camera = Camera(os.getcwd())
 
     def on_start_click(self):
         if not self.is_capturing:
@@ -47,11 +51,17 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         self.is_capturing = not self.is_capturing
 
     def on_action_connect(self):
-        if not self.is_connect:
-            self.action_connect.setText("断开连接")
-        else:
+        if not self.is_connect:  # 连接设备
+            try:
+                self.camera.connect()
+                self.action_connect.setText("断开连接")
+                self.is_connect = not self.is_connect
+            except gp.GPhoto2Error as e:
+                self.output('{}'.format(e), QColor('red'))
+        else:  # 断开设备
+            self.camera.disconnect()
             self.action_connect.setText("连接设备")
-        self.is_connect = not self.is_connect
+            self.is_connect = not self.is_connect
 
     def output(self, text, color=QColor('black')):
         time = datetime.now().strftime("%H:%M:%S")

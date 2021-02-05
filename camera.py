@@ -8,11 +8,14 @@ from tqdm import tqdm
 
 class Camera:
     def __init__(self, save_path):
-        self.camera = gp.Camera()
-        self.camera.init()
         self.save_path = save_path
         self.timeout = 10000  # miliseconds
         self.is_capture = False
+        self.camera = None
+
+    def connect(self):
+        self.camera = gp.Camera()
+        self.camera.init()
 
     def capture(self):
         self.is_capture = True
@@ -70,12 +73,15 @@ class Camera:
                 pass
             after = time.time()
 
-    def disconnect(self):
+    def stop_blub(self):
         if self.is_capture:
             config = self.camera.get_config()
             bulb_config = config.get_child_by_name('bulb')
             bulb_config.set_value(0)
             self.camera.set_config(config)
             self.wait_for_event(basename='discard', wait=10)
+
+    def disconnect(self):
+        self.stop_blub()
         # 断开连接
         self.camera.exit()
