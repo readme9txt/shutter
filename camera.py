@@ -75,12 +75,13 @@ class Camera:
         shutterspeed_config = config.get_child_by_name('shutterspeed')
         return shutterspeed_config.get_value()
 
-    def capture(self, callback):
+    def capture(self):
         # 拍照
         file_path = self.camera.capture(gp.GP_CAPTURE_IMAGE)
         jpg = self._save_file(file_path.folder, file_path.name)  # 保存jpg
         files = self.wait_for_save()  # 保存raw
-        return jpg, files.insert(0, jpg)
+        files.insert(0, jpg)
+        return files
 
     # 等待保存事件, 单位: 秒
     def wait_for_save(self, timeout=10):
@@ -98,7 +99,7 @@ class Camera:
     # 保存图片
     def _save_file(self, folder, name):
         camera_file = self.camera.file_get(folder, name, gp.GP_FILE_TYPE_NORMAL)  # 获取照片
-        file_name = '{}_{}'.format(uuid.uuid4().hex, time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()))  # 生成文件名
+        file_name = '{}_{}'.format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()), uuid.uuid4().hex)  # 生成文件名
         ext = os.path.splitext(name)[-1]
         target = os.path.join(self.output_dir, '{}{}'.format(file_name, ext))
         camera_file.save(target)  # 存储

@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 from datetime import datetime
+from enum import Enum
 from threading import Thread
 
 from PyQt5 import QtWidgets, QtCore
@@ -15,27 +16,41 @@ from shutter_qt5 import Ui_MainWindow
 
 logging.basicConfig(level=logging.DEBUG, filename='shutter.log', format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
+bulb_exposure_time = {
+    '1min': 1000 * 60, '1min30s': 1000 * 90, '2min': 1000 * 120, '2min30s': 1000 * 150,
+    '3min': 1000 * 180, '5min': 1000 * 300, '6min': 1000 * 360, '8min': 1000 * 480,
+    '10min': 1000 * 600
+}
+exposure_time = {
+    '0.4s': ('4/10', '400.0'), '0.5s': ('5/10', '500.0'), '0.6s': ('6/10', '600.0'),
+    '0.8s': ('8/10', '800.0'), '1s': ('10/10', '1000.0'), '1.3s': ('13/10', '1300.0'),
+    '1.6s': ('16/10', '1600.0'), '2s': ('20/10', '2000.0'), '2.5s': ('25/10', '2500.0'),
+    '3.2s': ('32/10', '3200.0'), '4s': ('40/10', '4000.0'), '5s': ('50/10', '5000.0'),
+    '6s': ('60/10', '6000.0'), '8s': ('80/10', '8000.0'), '10s': ('100/10', '10000.0'),
+    '13s': ('130/10', '13000.0'), '15s': ('150/10', '15000.0'), '20s': ('200/10', '20000.0'),
+    '25s': ('250/10', '25000.0'), '30s': ('300/10', '30000.0')
+}
+
+
+class UiEvent(Enum):
+    ON_DEVICE_CONNECT = 1
+    ON_DEVICE_DISCONNECT = 2
+    ON_CHECK_EVENT_START = 3
+    ON_CHECK_EVENT_FINISH = 4
+    ON_CAPTURE_START = 5
+    ON_CAPTURE_FINISH = 6
+    ON_BULB_CHECKED = 7
+    ON_BULB_NOT_CHECKED = 8
+
 
 class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
-    bulb_exposure_time = {
-        '1min': 1000 * 60, '1min30s': 1000 * 90, '2min': 1000 * 120, '2min30s': 1000 * 150,
-        '3min': 1000 * 180, '5min': 1000 * 300, '6min': 1000 * 360, '8min': 1000 * 480,
-        '10min': 1000 * 600
-    }
-    exposure_time = {
-        '0.4s': '4/10', '0.5s': '5/10', '0.6s': '6/10', '0.8s': '8/10',
-        '1s': '10/10', '1.3s': '13/10', '1.6s': '16/10', '2s': '20/10',
-        '2.5s': '25/10', '3.2s': '32/10', '4s': '40/10', '5s': '50/10',
-        '6s': '60/10', '8s': '80/10', '10s': '100/10', '13s': '130/10',
-        '15s': '150/10', '20s': '200/10', '25s': '250/10', '30s': '300/10'
-    }
 
     def __init__(self):
         super(ShutterWindows, self).__init__()
         self.setupUi(self)
         self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, False)
         self.sp_num.setMinimum(1)
-        self.cbl_exposure.addItems(self.exposure_time.keys())
+        self.cbl_exposure.addItems(exposure_time.keys())
         self.tb_log.document().setMaximumBlockCount(300)
 
         self.is_connect = False
@@ -50,33 +65,140 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         self.cb_bulb.stateChanged.connect(self.on_blub_state_change)
         self.camera = Camera(Config.output_dir)
 
-    def on_start_click(self):
-        if not self.is_capturing:
+    def update_element(self, ui_event):
+        """ 更新ui """
+        if ui_event == UiEvent.ON_DEVICE_CONNECT:
+            self.action_connect.setText("断开连接")
+            self.btn_check_event.setEnabled(True)
+            self.btn_start.setEnabled(True)
+        elif ui_event == UiEvent.ON_DEVICE_DISCONNECT:
+            self.action_connect.setText("连接设备")
+            self.btn_check_event.setEnabled(False)
+            self.btn_start.setEnabled(False)
+        elif ui_event == UiEvent.ON_CAPTURE_START:
             self.btn_start.setText("停止拍摄")
-            self.output("开始拍摄", QColor('red'))
-            self.is_capturing = True
-        else:
+            self.btn_check_event.setEnabled(False)
+            self.cb_bulb.setEnabled(False)
+            self.cbl_exposure.setEnabled(False)
+            self.sp_num.setEnabled(False)
+            self.pb_all.setValue(0)
+            self.tl_progress.setText('{}/{}'.format(0, self.sp_num.value()))
+            if not self.cb_bulb.isChecked():  # 普通模式
+                self.pb_single.setMaximum(0)
+            else:  # b门模式
+                self.pb_single.setMaximum(100)
+                self.pb_single.setValue(0)
+        elif ui_event == UiEvent.ON_CAPTURE_FINISH:
             self.btn_start.setText("开始拍摄")
-            self.output("停止拍摄")
-            self.is_capturing = False
-
-    def on_check_event_clicked(self):
-        if not self.is_checking_event:  # 检查事件
-            # 启动线程
-            self.t = WorkThread(self.camera)
-            self.t.start()
-            self.t.log_output.connect(self.event_listener)
-
+            self.btn_start.setEnabled(True)
+            self.btn_check_event.setEnabled(True)
+            self.cb_bulb.setEnabled(True)
+            self.cbl_exposure.setEnabled(True)
+            self.sp_num.setEnabled(True)
+            self.pb_single.setMaximum(100)
+            self.pb_single.setValue(0)
+        elif ui_event == UiEvent.ON_CHECK_EVENT_START:
             self.btn_check_event.setText("停止检查")
             self.btn_start.setEnabled(False)
+        elif ui_event == UiEvent.ON_CHECK_EVENT_FINISH:
+            self.btn_check_event.setText("检查事件")
+            self.btn_start.setEnabled(True)
+        elif ui_event == UiEvent.ON_BULB_CHECKED:
+            self.cbl_exposure.clear()
+            self.cbl_exposure.addItems(bulb_exposure_time.keys())
+        elif ui_event == UiEvent.ON_BULB_NOT_CHECKED:
+            self.cbl_exposure.clear()
+            self.cbl_exposure.addItems(exposure_time.keys())
+
+    def on_start_click(self):
+        """ 点击开始拍摄按钮 """
+        if not self.is_capturing:
+            num = self.sp_num.value()
+            if not self.cb_bulb.isChecked():  # 普通模式
+                self.t = CaptureThread(self.camera, False, exposure_time[self.cbl_exposure.currentText()], num)  # 启动线程
+            self.t.start()
+            self.t.progress_update.connect(self.update_progress_bar)
+            self.t.picture_output.connect(self.picture_output)
+            self.t.complete.connect(self.shoot_complete)
+
+            self.update_element(UiEvent.ON_CAPTURE_START)
+            self.is_capturing = True
+            self.log_output("开始拍摄", QColor('red'))
+        else:
+            self.t.stop()
+            self.btn_start.setEnabled(False)
+
+    def on_check_event_clicked(self):
+        """ 点击检查事件按钮 """
+        if not self.is_checking_event:  # 检查事件
+            # 启动线程
+            self.t = WaitForEventThread(self.camera)
+            self.t.start()
+            self.t.event.connect(self.camera_event_listener)
+            self.update_element(UiEvent.ON_CHECK_EVENT_START)
             self.is_checking_event = True
         else:
             self.camera.stop_wait_for_event()
-            self.btn_check_event.setText("检查事件")
-            self.btn_start.setEnabled(True)
+            self.update_element(UiEvent.ON_CHECK_EVENT_FINISH)
             self.is_checking_event = False
 
-    def event_listener(self, event_type, info=None):
+    def on_action_connect_clicked(self):
+        """ 点击连接设备菜单 """
+        if not self.is_connect:  # 连接设备
+            try:
+                self.camera.connect()
+                self.camera_model = self.camera.get_camera_model()
+                self.log_output('{} 已连接'.format(self.camera_model))
+                self.update_element(UiEvent.ON_DEVICE_CONNECT)
+                self.is_connect = True
+            except CameraError as e:
+                self.log_output('连接设备遇到问题: {}'.format(e), QColor('red'))
+                return
+        else:  # 断开设备
+            self.camera.disconnect()
+            self.log_output('{} 断开连接'.format(self.camera_model))
+            self.update_element(UiEvent.ON_DEVICE_DISCONNECT)
+            self.is_connect = False
+
+    def on_action_save_dir_clicked(self):
+        """ 选择文件夹 """
+        directory = QFileDialog.getExistingDirectory(self, '选择文件夹', Config.output_dir)
+        if len(directory) > 0:
+            Config.set_output_dir(directory)
+            self.camera.set_output_dir(directory)
+
+    def on_blub_state_change(self):
+        """ 当B门被选中时触发 """
+        if self.cb_bulb.isChecked():
+            self.update_element(UiEvent.ON_BULB_CHECKED)
+        else:
+            self.update_element(UiEvent.ON_BULB_NOT_CHECKED)
+
+    def log_output(self, text, color=QColor('black')):
+        """ 输出到log """
+        time = datetime.now().strftime("%H:%M:%S")
+        self.tb_log.setTextColor(color)
+        self.tb_log.append('{} {}'.format(time, text))
+
+    def update_progress_bar(self, single_value, value):
+        """ 更新进度条 """
+        self.pb_single.setValue(single_value)
+        self.pb_all.setValue(int((value / self.sp_num.value()) * 100))
+        self.tl_progress.setText('{}/{}'.format(value, self.sp_num.value()))
+
+    def picture_output(self, pics):
+        """ 输出照片 """
+        for path in pics:
+            self.log_output('{} -> 保存相片到 {}'.format(self.camera_model, path))
+
+    def shoot_complete(self):
+        """ 拍摄完成 """
+        self.update_element(UiEvent.ON_CAPTURE_FINISH)
+        self.is_capturing = False
+        self.log_output("拍摄完成")
+
+    def camera_event_listener(self, event_type, info=None):
+        """ 相机事件监听 """
         if event_type == Camera.EVENT_UNKNOWN:
             pass
             # self.output('{} -> EVENT_UNKNOWN'.format(self.camera_model))
@@ -84,62 +206,50 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             pass
             # self.output('{} -> EVENT_TIMEOUT'.format(self.camera_model))
         elif event_type == Camera.EVENT_FILE_ADDED:  # 有文件生成
-            self.output('{} -> 保存相片到 {}'.format(self.camera_model, info))
+            self.log_output('{} -> 保存相片到 {}'.format(self.camera_model, info))
         elif event_type == Camera.EVENT_FOLDER_ADDED:
-            self.output('{} -> EVENT_FOLDER_ADDED'.format(self.camera_model))
+            self.log_output('{} -> EVENT_FOLDER_ADDED'.format(self.camera_model))
         elif event_type == Camera.EVENT_CAPTURE_COMPLETE:
-            self.output('{} -> EVENT_CAPTURE_COMPLETE'.format(self.camera_model))
-
-    def on_action_connect_clicked(self):
-        if not self.is_connect:  # 连接设备
-            try:
-                self.camera.connect()
-                self.action_connect.setText("断开连接")
-                self.camera_model = self.camera.get_camera_model()
-                self.output('{} 已连接'.format(self.camera_model))
-                self.btn_check_event.setEnabled(True)
-                self.btn_start.setEnabled(True)
-                self.is_connect = True
-            except CameraError as e:
-                self.output('连接设备遇到问题: {}'.format(e), QColor('red'))
-                return
-        else:  # 断开设备
-            self.camera.disconnect()
-            self.output('{} 断开连接'.format(self.camera_model))
-            self.action_connect.setText("连接设备")
-            self.btn_check_event.setEnabled(False)
-            self.btn_start.setEnabled(False)
-            self.is_connect = False
-
-    def on_action_save_dir_clicked(self):
-        directory = QFileDialog.getExistingDirectory(self, '选择文件夹', Config.output_dir)
-        if len(directory) > 0:
-            Config.set_output_dir(directory)
-            self.camera.set_output_dir(directory)
-
-    def on_blub_state_change(self):
-        if self.cb_bulb.isChecked():
-            self.cbl_exposure.clear()
-            self.cbl_exposure.addItems(self.bulb_exposure_time.keys())
-        else:
-            self.cbl_exposure.clear()
-            self.cbl_exposure.addItems(self.exposure_time.keys())
-
-    def output(self, text, color=QColor('black')):
-        time = datetime.now().strftime("%H:%M:%S")
-        self.tb_log.setTextColor(color)
-        self.tb_log.append('{} {}'.format(time, text))
+            self.log_output('{} -> EVENT_CAPTURE_COMPLETE'.format(self.camera_model))
 
 
-class WorkThread(QThread):
-    log_output = pyqtSignal(int, str)
+class WaitForEventThread(QThread):
+    event = pyqtSignal(int, str)
 
     def __init__(self, camera: Camera):
-        super(WorkThread, self).__init__()
+        super(WaitForEventThread, self).__init__()
         self.camera = camera
 
     def run(self) -> None:
-        self.camera.wait_for_event_forever(self.log_output.emit)
+        self.camera.wait_for_event_forever(self.event.emit)
+
+
+class CaptureThread(QThread):
+    picture_output = pyqtSignal(list)
+    progress_update = pyqtSignal(int, int)
+    complete = pyqtSignal()
+
+    def __init__(self, camera: Camera, is_bulb: bool, shutterspeed, num: int):
+        super(CaptureThread, self).__init__()
+        self.camera = camera
+        self.is_bulb = is_bulb
+        self.shutterspeed = shutterspeed
+        self.num = num
+        self.working = True
+
+    def run(self) -> None:
+        if not self.is_bulb:
+            self.camera.set_shutterspeed(self.shutterspeed[0])
+            for i in range(self.num):
+                if not self.working:
+                    break
+                pics = self.camera.capture()
+                self.picture_output.emit(pics)
+                self.progress_update.emit(0, i + 1)
+            self.complete.emit()
+
+    def stop(self):
+        self.working = False
 
 
 if __name__ == '__main__':
