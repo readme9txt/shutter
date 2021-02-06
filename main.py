@@ -8,7 +8,7 @@ from threading import Thread
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QColor, QTextCursor
-from PyQt5.QtWidgets import QApplication, QFileDialog
+from PyQt5.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from camera import Camera, CameraError
 from config import Config
@@ -122,10 +122,11 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             self.t.progress_update.connect(self.update_progress_bar)
             self.t.picture_output.connect(self.picture_output)
             self.t.complete.connect(self.shoot_complete)
+            self.t.error.connect(self.shoot_error)
 
             self.update_element(UiEvent.ON_CAPTURE_START)
             self.is_capturing = True
-            self.log_output("开始拍摄", QColor('red'))
+            self.log_output("开始拍摄")
         else:
             self.t.stop()
             self.btn_start.setEnabled(False)
@@ -197,7 +198,17 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         """ 拍摄完成 """
         self.update_element(UiEvent.ON_CAPTURE_FINISH)
         self.is_capturing = False
-        self.log_output("拍摄完成")
+        self.log_output("拍摄结束")
+
+    def shoot_error(self, message):
+        """ 拍摄错误 """
+        self.update_element(UiEvent.ON_CAPTURE_FINISH)
+        self.is_capturing = False
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText("请使用Bulb模式")
+        msg.setWindowTitle("Error")
+        msg.exec_()
 
     def camera_event_listener(self, event_type, info=None):
         """ 相机事件监听 """
@@ -230,6 +241,7 @@ class CaptureThread(QThread):
     picture_output = pyqtSignal(list)
     progress_update = pyqtSignal(int, int)
     complete = pyqtSignal()
+    error = pyqtSignal(str)
 
     def __init__(self, camera: Camera, is_bulb: bool, shutterspeed, num: int):
         super(CaptureThread, self).__init__()
@@ -249,20 +261,22 @@ class CaptureThread(QThread):
                 self.picture_output.emit(pics)
                 self.progress_update.emit(0, i + 1)
         else:  # b门模式
-            self.camera.set_bulb()
-            for i in range(self.num):
-                if not self.working:
-                    break
-                self.camera.bulb()
-                seconds = int(self.shutterspeed / 1000)
-                for j in range(seconds):
+            if self.camera.get_shutterspeed() != 'Bulb':
+                self.error.emit('请设置为bulb模式')
+            else:
+                for i in range(self.num):
                     if not self.working:
                         break
-                    self.sleep(1)
-                    self.progress_update.emit(int(j / seconds * 100), i)
-                pics = self.camera.blub_stop()
-                self.picture_output.emit(pics)
-                self.progress_update.emit(100, i + 1)
+                    self.camera.bulb()
+                    seconds = int(self.shutterspeed / 1000)
+                    for j in range(seconds):
+                        if not self.working:
+                            break
+                        self.sleep(1)
+                        self.progress_update.emit(int(j / seconds * 100), i)
+                    pics = self.camera.blub_stop()
+                    self.picture_output.emit(pics)
+                    self.progress_update.emit(100, i + 1)
         self.complete.emit()
 
     def stop(self):
