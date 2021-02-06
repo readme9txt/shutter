@@ -284,6 +284,13 @@
     </property>
     <addaction name="action_connect"/>
    </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>文件</string>
+    </property>
+    <addaction name="action_save_dir"/>
+   </widget>
+   <addaction name="menu_2"/>
    <addaction name="menu"/>
   </widget>
   <action name="action_connect">
@@ -297,6 +304,11 @@
    </property>
    <property name="text">
     <string>断开设备</string>
+   </property>
+  </action>
+  <action name="action_save_dir">
+   <property name="text">
+    <string>输出目录</string>
    </property>
   </action>
  </widget>

@@ -7,9 +7,10 @@ from threading import Thread
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QColor, QTextCursor
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QFileDialog
 
 from camera import Camera, CameraError
+from config import Config
 from shutter_qt5 import Ui_MainWindow
 
 logging.basicConfig(level=logging.DEBUG, filename='shutter.log', format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -44,9 +45,10 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         # 点击事件
         self.btn_start.clicked.connect(self.on_start_click)
         self.btn_check_event.clicked.connect(self.on_check_event_clicked)
-        self.action_connect.triggered.connect(self.on_action_connect)
+        self.action_connect.triggered.connect(self.on_action_connect_clicked)
+        self.action_save_dir.triggered.connect(self.on_action_save_dir_clicked)
         self.cb_bulb.stateChanged.connect(self.on_blub_state_change)
-        self.camera = Camera(os.getcwd())
+        self.camera = Camera(Config.output_dir)
 
     def on_start_click(self):
         if not self.is_capturing:
@@ -60,9 +62,11 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def on_check_event_clicked(self):
         if not self.is_checking_event:  # 检查事件
+            # 启动线程
             self.t = WorkThread(self.camera)
             self.t.start()
             self.t.log_output.connect(self.event_listener)
+
             self.btn_check_event.setText("停止检查")
             self.btn_start.setEnabled(False)
             self.is_checking_event = True
@@ -86,7 +90,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         elif event_type == Camera.EVENT_CAPTURE_COMPLETE:
             self.output('{} -> EVENT_CAPTURE_COMPLETE'.format(self.camera_model))
 
-    def on_action_connect(self):
+    def on_action_connect_clicked(self):
         if not self.is_connect:  # 连接设备
             try:
                 self.camera.connect()
@@ -106,6 +110,12 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             self.btn_check_event.setEnabled(False)
             self.btn_start.setEnabled(False)
             self.is_connect = False
+
+    def on_action_save_dir_clicked(self):
+        directory = QFileDialog.getExistingDirectory(self, '选择文件夹', Config.output_dir)
+        if len(directory) > 0:
+            Config.set_output_dir(directory)
+            self.camera.set_output_dir(directory)
 
     def on_blub_state_change(self):
         if self.cb_bulb.isChecked():

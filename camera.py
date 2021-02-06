@@ -16,10 +16,13 @@ class Camera:
     EVENT_FOLDER_ADDED = 0x04
     EVENT_CAPTURE_COMPLETE = 0x05
 
-    def __init__(self, save_path):
-        self.save_path = save_path
+    def __init__(self, output_dir):
+        self.output_dir = output_dir
         self.camera = None
         self.wait_event_loop = False
+
+    def set_output_dir(self, path):
+        self.output_dir = path
 
     def connect(self):
         try:
@@ -97,7 +100,7 @@ class Camera:
         camera_file = self.camera.file_get(folder, name, gp.GP_FILE_TYPE_NORMAL)  # 获取照片
         file_name = '{}_{}'.format(uuid.uuid4().hex, time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()))  # 生成文件名
         ext = os.path.splitext(name)[-1]
-        target = os.path.join(self.save_path, '{}{}'.format(file_name, ext))
+        target = os.path.join(self.output_dir, '{}{}'.format(file_name, ext))
         camera_file.save(target)  # 存储
         return target
 
