@@ -1,11 +1,8 @@
-import logging
 import os
 import time
 import uuid
-from typing import Callable
 
 import gphoto2 as gp
-from tqdm import tqdm
 
 
 class CameraError(Exception):

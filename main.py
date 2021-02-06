@@ -48,14 +48,6 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         self.cb_bulb.stateChanged.connect(self.on_blub_state_change)
         self.camera = Camera(os.getcwd())
 
-    def camera_enabled(self):
-        self.btn_check_event.setEnabled(True)
-        self.btn_start.setEnabled(True)
-
-    def camera_disabled(self):
-        self.btn_check_event.setEnabled(False)
-        self.btn_start.setEnabled(False)
-
     def on_start_click(self):
         if not self.is_capturing:
             self.btn_start.setText("停止拍摄")
@@ -101,7 +93,8 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.action_connect.setText("断开连接")
                 self.camera_model = self.camera.get_camera_model()
                 self.output('{} 已连接'.format(self.camera_model))
-                self.camera_enabled()
+                self.btn_check_event.setEnabled(True)
+                self.btn_start.setEnabled(True)
                 self.is_connect = True
             except CameraError as e:
                 self.output('连接设备遇到问题: {}'.format(e), QColor('red'))
@@ -110,7 +103,8 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             self.camera.disconnect()
             self.output('{} 断开连接'.format(self.camera_model))
             self.action_connect.setText("连接设备")
-            self.camera_disabled()
+            self.btn_check_event.setEnabled(False)
+            self.btn_start.setEnabled(False)
             self.is_connect = False
 
     def on_blub_state_change(self):
