@@ -1,14 +1,18 @@
+import logging
 import os
 import sys
 from datetime import datetime
+from threading import Thread
 
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtGui import QColor, QTextOption
+from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtGui import QColor, QTextCursor
 from PyQt5.QtWidgets import QApplication
 
-import gphoto2 as gp
-from camera import Camera
+from camera import Camera, CameraError
 from shutter_qt5 import Ui_MainWindow
+
+logging.basicConfig(level=logging.DEBUG, filename='shutter.log', format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 
 class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -31,21 +35,24 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, False)
         self.sp_num.setMinimum(1)
         self.cbl_exposure.addItems(self.exposure_time.keys())
+        self.tb_log.document().setMaximumBlockCount(300)
 
         self.is_connect = False
         self.is_capturing = False
+        self.is_checking_event = False
         self.camera_model = ''
         # 点击事件
         self.btn_start.clicked.connect(self.on_start_click)
+        self.btn_check_event.clicked.connect(self.on_check_event_clicked)
         self.action_connect.triggered.connect(self.on_action_connect)
         self.cb_bulb.stateChanged.connect(self.on_blub_state_change)
         self.camera = Camera(os.getcwd())
 
-    def enabled(self):
+    def camera_enabled(self):
         self.btn_check_event.setEnabled(True)
         self.btn_start.setEnabled(True)
 
-    def disabled(self):
+    def camera_disabled(self):
         self.btn_check_event.setEnabled(False)
         self.btn_start.setEnabled(False)
 
@@ -53,10 +60,39 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.is_capturing:
             self.btn_start.setText("停止拍摄")
             self.output("开始拍摄", QColor('red'))
+            self.is_capturing = True
         else:
             self.btn_start.setText("开始拍摄")
             self.output("停止拍摄")
-        self.is_capturing = not self.is_capturing
+            self.is_capturing = False
+
+    def on_check_event_clicked(self):
+        if not self.is_checking_event:  # 检查事件
+            self.t = WorkThread(self.camera)
+            self.t.start()
+            self.t.log_output.connect(self.event_listener)
+            self.btn_check_event.setText("停止检查")
+            self.btn_start.setEnabled(False)
+            self.is_checking_event = True
+        else:
+            self.camera.stop_wait_for_event()
+            self.btn_check_event.setText("检查事件")
+            self.btn_start.setEnabled(True)
+            self.is_checking_event = False
+
+    def event_listener(self, event_type, info=None):
+        if event_type == Camera.EVENT_UNKNOWN:
+            pass
+            # self.output('{} -> EVENT_UNKNOWN'.format(self.camera_model))
+        elif event_type == Camera.EVENT_TIMEOUT:
+            pass
+            # self.output('{} -> EVENT_TIMEOUT'.format(self.camera_model))
+        elif event_type == Camera.EVENT_FILE_ADDED:  # 有文件生成
+            self.output('{} -> 保存相片到 {}'.format(self.camera_model, info))
+        elif event_type == Camera.EVENT_FOLDER_ADDED:
+            self.output('{} -> EVENT_FOLDER_ADDED'.format(self.camera_model))
+        elif event_type == Camera.EVENT_CAPTURE_COMPLETE:
+            self.output('{} -> EVENT_CAPTURE_COMPLETE'.format(self.camera_model))
 
     def on_action_connect(self):
         if not self.is_connect:  # 连接设备
@@ -65,16 +101,16 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.action_connect.setText("断开连接")
                 self.camera_model = self.camera.get_camera_model()
                 self.output('{} 已连接'.format(self.camera_model))
-                self.enabled()
+                self.camera_enabled()
                 self.is_connect = True
-            except gp.GPhoto2Error as e:
+            except CameraError as e:
                 self.output('连接设备遇到问题: {}'.format(e), QColor('red'))
                 return
         else:  # 断开设备
             self.camera.disconnect()
             self.output('{} 断开连接'.format(self.camera_model))
             self.action_connect.setText("连接设备")
-            self.disabled()
+            self.camera_disabled()
             self.is_connect = False
 
     def on_blub_state_change(self):
@@ -88,7 +124,18 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
     def output(self, text, color=QColor('black')):
         time = datetime.now().strftime("%H:%M:%S")
         self.tb_log.setTextColor(color)
-        self.tb_log.append('{}: {}'.format(time, text))
+        self.tb_log.append('{} {}'.format(time, text))
+
+
+class WorkThread(QThread):
+    log_output = pyqtSignal(int, str)
+
+    def __init__(self, camera: Camera):
+        super(WorkThread, self).__init__()
+        self.camera = camera
+
+    def run(self) -> None:
+        self.camera.wait_for_event_forever(self.log_output.emit)
 
 
 if __name__ == '__main__':
