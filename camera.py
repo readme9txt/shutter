@@ -105,13 +105,15 @@ class Camera:
         camera_file.save(target)  # 存储
         return target
 
-    def bulb(self):
+    def set_bulb(self):
         config = self.camera.get_config()
-        # 设置为b门
         shutterspeed_config = config.get_child_by_name('shutterspeed')
         shutterspeed_config.set_value('Bulb')
         self.camera.set_config(config)
+
+    def bulb(self):
         # 开始曝光
+        config = self.camera.get_config()
         bulb_config = config.get_child_by_name('bulb')
         bulb_config.set_value(1)
         self.camera.set_config(config)

@@ -115,7 +115,9 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.is_capturing:
             num = self.sp_num.value()
             if not self.cb_bulb.isChecked():  # 普通模式
-                self.t = CaptureThread(self.camera, False, exposure_time[self.cbl_exposure.currentText()], num)  # 启动线程
+                self.t = CaptureThread(self.camera, False, exposure_time[self.cbl_exposure.currentText()][0], num)
+            else:
+                self.t = CaptureThread(self.camera, True, bulb_exposure_time[self.cbl_exposure.currentText()], num)
             self.t.start()
             self.t.progress_update.connect(self.update_progress_bar)
             self.t.picture_output.connect(self.picture_output)
@@ -238,15 +240,30 @@ class CaptureThread(QThread):
         self.working = True
 
     def run(self) -> None:
-        if not self.is_bulb:
-            self.camera.set_shutterspeed(self.shutterspeed[0])
+        if not self.is_bulb:  # 普通模式
+            self.camera.set_shutterspeed(self.shutterspeed)
             for i in range(self.num):
                 if not self.working:
                     break
                 pics = self.camera.capture()
                 self.picture_output.emit(pics)
                 self.progress_update.emit(0, i + 1)
-            self.complete.emit()
+        else:  # b门模式
+            self.camera.set_bulb()
+            for i in range(self.num):
+                if not self.working:
+                    break
+                self.camera.bulb()
+                seconds = int(self.shutterspeed / 1000)
+                for j in range(seconds):
+                    if not self.working:
+                        break
+                    self.sleep(1)
+                    self.progress_update.emit(int(j / seconds * 100), i)
+                pics = self.camera.blub_stop()
+                self.picture_output.emit(pics)
+                self.progress_update.emit(100, i + 1)
+        self.complete.emit()
 
     def stop(self):
         self.working = False
