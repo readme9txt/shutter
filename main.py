@@ -160,10 +160,17 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.log_output('连接设备遇到问题: {}'.format(e), QColor('red'))
                 return
         else:  # 断开设备
-            self.camera.disconnect()
-            self.log_output('{} 断开连接'.format(self.camera_model))
-            self.update_element(UiEvent.ON_DEVICE_DISCONNECT)
-            self.is_connect = False
+            if self.is_capturing or self.is_checking_event:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Critical)
+                msg.setText('请先停止任务')
+                msg.setWindowTitle("Error")
+                msg.exec_()
+            else:
+                self.camera.disconnect()
+                self.log_output('{} 断开连接'.format(self.camera_model))
+                self.update_element(UiEvent.ON_DEVICE_DISCONNECT)
+                self.is_connect = False
 
     def on_action_save_dir_clicked(self):
         """ 选择文件夹 """
