@@ -206,7 +206,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         self.is_capturing = False
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
-        msg.setText("请使用Bulb模式")
+        msg.setText(message)
         msg.setWindowTitle("Error")
         msg.exec_()
 
