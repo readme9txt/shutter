@@ -57,6 +57,8 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         self.is_capturing = False
         self.is_checking_event = False
         self.camera_model = ''
+        self.capture_t = None
+        self.wait_for_event_t = None
         # 点击事件
         self.btn_start.clicked.connect(self.on_start_click)
         self.btn_check_event.clicked.connect(self.on_check_event_clicked)
@@ -115,29 +117,29 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.is_capturing:
             num = self.sp_num.value()
             if not self.cb_bulb.isChecked():  # 普通模式
-                self.t = CaptureThread(self.camera, False, exposure_time[self.cbl_exposure.currentText()][0], num)
+                self.capture_t = CaptureThread(self.camera, False, exposure_time[self.cbl_exposure.currentText()][0], num)
             else:
-                self.t = CaptureThread(self.camera, True, bulb_exposure_time[self.cbl_exposure.currentText()], num)
-            self.t.start()
-            self.t.progress_update.connect(self.update_progress_bar)
-            self.t.picture_output.connect(self.picture_output)
-            self.t.complete.connect(self.shoot_complete)
-            self.t.error.connect(self.shoot_error)
+                self.capture_t = CaptureThread(self.camera, True, bulb_exposure_time[self.cbl_exposure.currentText()], num)
+            self.capture_t.start()
+            self.capture_t.progress_update.connect(self.update_progress_bar)
+            self.capture_t.picture_output.connect(self.picture_output)
+            self.capture_t.complete.connect(self.shoot_complete)
+            self.capture_t.error.connect(self.shoot_error)
 
             self.update_element(UiEvent.ON_CAPTURE_START)
             self.is_capturing = True
             self.log_output("开始拍摄")
         else:
-            self.t.stop()
+            self.capture_t.stop()
             self.btn_start.setEnabled(False)
 
     def on_check_event_clicked(self):
         """ 点击检查事件按钮 """
         if not self.is_checking_event:  # 检查事件
             # 启动线程
-            self.t = WaitForEventThread(self.camera)
-            self.t.start()
-            self.t.event.connect(self.camera_event_listener)
+            self.wait_for_event_t = WaitForEventThread(self.camera)
+            self.wait_for_event_t.start()
+            self.wait_for_event_t.event.connect(self.camera_event_listener)
             self.update_element(UiEvent.ON_CHECK_EVENT_START)
             self.is_checking_event = True
         else:
