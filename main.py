@@ -10,7 +10,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QColor, QTextCursor
 from PyQt5.QtWidgets import QApplication, QFileDialog, QMessageBox
 
-from camera import Camera, CameraError
+from camera import Camera, CameraError, CameraEvent
 from config import Config
 from shutter_qt5 import Ui_MainWindow
 
@@ -221,17 +221,17 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def camera_event_listener(self, event_type, info=None):
         """ 相机事件监听 """
-        if event_type == Camera.EVENT_UNKNOWN:
+        if event_type == CameraEvent.EVENT_UNKNOWN:
             pass
             # self.output('{} -> EVENT_UNKNOWN'.format(self.camera_model))
-        elif event_type == Camera.EVENT_TIMEOUT:
+        elif event_type == CameraEvent.EVENT_TIMEOUT:
             pass
             # self.output('{} -> EVENT_TIMEOUT'.format(self.camera_model))
-        elif event_type == Camera.EVENT_FILE_ADDED:  # 有文件生成
+        elif event_type == CameraEvent.EVENT_FILE_ADDED:  # 有文件生成
             self.log_output('{} -> 保存相片到 {}'.format(self.camera_model, info))
-        elif event_type == Camera.EVENT_FOLDER_ADDED:
+        elif event_type == CameraEvent.EVENT_FOLDER_ADDED:
             self.log_output('{} -> EVENT_FOLDER_ADDED'.format(self.camera_model))
-        elif event_type == Camera.EVENT_CAPTURE_COMPLETE:
+        elif event_type == CameraEvent.EVENT_CAPTURE_COMPLETE:
             self.log_output('{} -> EVENT_CAPTURE_COMPLETE'.format(self.camera_model))
 
 

@@ -1,6 +1,7 @@
 import os
 import time
 import uuid
+from enum import Enum
 
 import gphoto2 as gp
 
@@ -9,13 +10,15 @@ class CameraError(Exception):
     pass
 
 
-class Camera:
-    EVENT_UNKNOWN = 0x01
-    EVENT_TIMEOUT = 0x02
-    EVENT_FILE_ADDED = 0x03
-    EVENT_FOLDER_ADDED = 0x04
-    EVENT_CAPTURE_COMPLETE = 0x05
+class CameraEvent(Enum):
+    EVENT_UNKNOWN = 1
+    EVENT_TIMEOUT = 2
+    EVENT_FILE_ADDED = 3
+    EVENT_FOLDER_ADDED = 4
+    EVENT_CAPTURE_COMPLETE = 5
 
+
+class Camera:
     def __init__(self, output_dir):
         self.output_dir = output_dir
         self.camera = None
@@ -50,16 +53,16 @@ class Camera:
         while self.wait_event_loop:
             event_type, event_data = self.camera.wait_for_event(1000)
             if event_type == gp.GP_EVENT_UNKNOWN:
-                listener(Camera.EVENT_UNKNOWN, None)
+                listener(CameraEvent.EVENT_UNKNOWN, None)
             elif event_type == gp.GP_EVENT_TIMEOUT:
-                listener(Camera.EVENT_TIMEOUT, None)
+                listener(CameraEvent.EVENT_TIMEOUT, None)
             elif event_type == gp.GP_EVENT_FILE_ADDED:  # 有文件生成
                 target = self._save_file(event_data.folder, event_data.name)
-                listener(Camera.EVENT_FILE_ADDED, target)
+                listener(CameraEvent.EVENT_FILE_ADDED, target)
             elif event_type == gp.GP_EVENT_FOLDER_ADDED:
-                listener(Camera.EVENT_FOLDER_ADDED, None)
+                listener(CameraEvent.EVENT_FOLDER_ADDED, None)
             elif event_type == gp.GP_EVENT_CAPTURE_COMPLETE:
-                listener(Camera.EVENT_CAPTURE_COMPLETE, None)
+                listener(CameraEvent.EVENT_CAPTURE_COMPLETE, None)
 
     def stop_wait_for_event(self):
         self.wait_event_loop = False
