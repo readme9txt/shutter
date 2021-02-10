@@ -1,13 +1,11 @@
 import logging
-import os
 import sys
 from datetime import datetime
 from enum import Enum
-from threading import Thread
 
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtGui import QColor, QTextCursor
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from camera import Camera, CameraError, CameraEvent
