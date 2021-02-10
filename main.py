@@ -159,11 +159,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
                 return
         else:  # 断开设备
             if self.is_capturing or self.is_checking_event:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setText('请先停止任务')
-                msg.setWindowTitle("Error")
-                msg.exec_()
+                show_error_dialog('Error', '请先停止任务')
             else:
                 self.camera.disconnect()
                 self.log_output('{} 断开连接'.format(self.camera_model))
@@ -211,11 +207,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         """ 拍摄错误 """
         self.update_element(UiEvent.ON_CAPTURE_FINISH)
         self.is_capturing = False
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText(message)
-        msg.setWindowTitle("Error")
-        msg.exec_()
+        show_error_dialog('Error', message)
 
     def camera_event_listener(self, event_type, event_data):
         """ 相机事件监听 """
@@ -275,7 +267,7 @@ class CaptureThread(QThread):
                 self.progress_update.emit(0, i + 1)
         else:  # b门模式
             if self.camera.get_shutterspeed() != 'Bulb':
-                self.error.emit('请设置为bulb模式')
+                self.error.emit('请设置为Bulb模式')
             else:
                 for i in range(self.num):
                     if not self.working:
@@ -294,6 +286,14 @@ class CaptureThread(QThread):
 
     def stop(self):
         self.working = False
+
+
+def show_error_dialog(title, message):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Critical)
+    msg.setText(message)
+    msg.setWindowTitle(title)
+    msg.exec_()
 
 
 if __name__ == '__main__':
