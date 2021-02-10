@@ -141,7 +141,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             self.update_element(UiEvent.ON_CHECK_EVENT_START)
             self.is_checking_event = True
         else:
-            self.camera.stop_wait_for_event()
+            self.wait_for_event_t.stop()
             self.update_element(UiEvent.ON_CHECK_EVENT_FINISH)
             self.is_checking_event = False
 
@@ -217,7 +217,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         msg.setWindowTitle("Error")
         msg.exec_()
 
-    def camera_event_listener(self, event_type, info=None):
+    def camera_event_listener(self, event_type, event_data):
         """ 相机事件监听 """
         if event_type == CameraEvent.EVENT_UNKNOWN:
             pass
@@ -226,7 +226,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             pass
             # self.output('{} -> EVENT_TIMEOUT'.format(self.camera_model))
         elif event_type == CameraEvent.EVENT_FILE_ADDED:  # 有文件生成
-            self.log_output('{} -> 保存相片到 {}'.format(self.camera_model, info))
+            self.log_output('{} -> 保存相片到 {}'.format(self.camera_model, event_data))
         elif event_type == CameraEvent.EVENT_FOLDER_ADDED:
             self.log_output('{} -> EVENT_FOLDER_ADDED'.format(self.camera_model))
         elif event_type == CameraEvent.EVENT_CAPTURE_COMPLETE:
@@ -234,14 +234,20 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 class WaitForEventThread(QThread):
-    event = pyqtSignal(int, str)
+    event = pyqtSignal(CameraEvent, str)
 
     def __init__(self, camera: Camera):
         super(WaitForEventThread, self).__init__()
         self.camera = camera
 
     def run(self) -> None:
-        self.camera.wait_for_event_forever(self.event.emit)
+        self.camera.wait_for_event_forever(self.event_listener)
+
+    def event_listener(self, event_type, event_data):
+        self.event.emit(event_type, event_data)
+
+    def stop(self):
+        self.camera.stop_wait_for_event()
 
 
 class CaptureThread(QThread):

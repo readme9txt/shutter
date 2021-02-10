@@ -53,16 +53,16 @@ class Camera:
         while self.wait_event_loop:
             event_type, event_data = self.camera.wait_for_event(1000)
             if event_type == gp.GP_EVENT_UNKNOWN:
-                listener(CameraEvent.EVENT_UNKNOWN, None)
+                listener(CameraEvent.EVENT_UNKNOWN, event_data)
             elif event_type == gp.GP_EVENT_TIMEOUT:
-                listener(CameraEvent.EVENT_TIMEOUT, None)
+                listener(CameraEvent.EVENT_TIMEOUT, event_data)
             elif event_type == gp.GP_EVENT_FILE_ADDED:  # 有文件生成
                 target = self._save_file(event_data.folder, event_data.name)
                 listener(CameraEvent.EVENT_FILE_ADDED, target)
             elif event_type == gp.GP_EVENT_FOLDER_ADDED:
-                listener(CameraEvent.EVENT_FOLDER_ADDED, None)
+                listener(CameraEvent.EVENT_FOLDER_ADDED, event_data)
             elif event_type == gp.GP_EVENT_CAPTURE_COMPLETE:
-                listener(CameraEvent.EVENT_CAPTURE_COMPLETE, None)
+                listener(CameraEvent.EVENT_CAPTURE_COMPLETE, event_data)
 
     def stop_wait_for_event(self):
         self.wait_event_loop = False
