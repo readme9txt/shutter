@@ -121,7 +121,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.capture_t = CaptureThread(self.camera, True, bulb_exposure_time[self.cbl_exposure.currentText()], num)
             self.capture_t.start()
             self.capture_t.progress_update.connect(self.update_progress_bar)
-            self.capture_t.picture_output.connect(self.picture_output)
+            self.capture_t.log_output.connect(self.shoot_log)
             self.capture_t.complete.connect(self.shoot_complete)
             self.capture_t.error.connect(self.shoot_error)
 
@@ -186,22 +186,21 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tb_log.setTextColor(color)
         self.tb_log.append('{} {}'.format(time, text))
 
+    def shoot_log(self, text):
+        """ 拍摄任务日志输出 """
+        self.log_output(text)
+
     def update_progress_bar(self, single_value, value):
         """ 更新进度条 """
         self.pb_single.setValue(single_value)
         self.pb_all.setValue(int((value / self.sp_num.value()) * 100))
         self.tl_progress.setText('{}/{}'.format(value, self.sp_num.value()))
 
-    def picture_output(self, pics):
-        """ 输出照片 """
-        for path in pics:
-            self.log_output('{} -> 保存相片到 {}'.format(self.camera_model, path))
-
     def shoot_complete(self):
         """ 拍摄完成 """
         self.update_element(UiEvent.ON_CAPTURE_FINISH)
         self.is_capturing = False
-        self.log_output("拍摄结束")
+        self.log_output("任务结束")
 
     def shoot_error(self, message):
         """ 拍摄错误 """
@@ -246,7 +245,7 @@ class WaitForEventThread(QThread):
 
 
 class CaptureThread(QThread):
-    picture_output = pyqtSignal(list)
+    log_output = pyqtSignal(str)
     progress_update = pyqtSignal(int, int)
     complete = pyqtSignal()
     error = pyqtSignal(str)
@@ -265,8 +264,7 @@ class CaptureThread(QThread):
             for i in range(self.num):
                 if not self.working:
                     break
-                pics = self.camera.capture()
-                self.picture_output.emit(pics)
+                self.camera.capture(self.event_listener)
                 self.progress_update.emit(0, i + 1)
         else:  # b门模式
             if self.camera.get_shutterspeed() != 'Bulb':
@@ -282,10 +280,17 @@ class CaptureThread(QThread):
                             break
                         self.sleep(1)
                         self.progress_update.emit(int(j / seconds * 100), i)
-                    pics = self.camera.blub_stop()
-                    self.picture_output.emit(pics)
+                    self.camera.blub_stop(self.event_listener)
                     self.progress_update.emit(100, i + 1)
         self.complete.emit()
+
+    def event_listener(self, event_type, event_data):
+        if event_type == CameraEvent.EVENT_FILE_ADDED:  # 有文件生成
+            self.log_output.emit('保存相片到 {}'.format(event_data))
+        elif event_type == CameraEvent.EVENT_CAPTURE_COMPLETE:
+            self.log_output.emit('曝光完成')
+        elif event_type == CameraEvent.EVENT_FINISH:
+            self.log_output.emit('保存完毕')
 
     def stop(self):
         self.working = False

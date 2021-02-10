@@ -80,16 +80,19 @@ class Camera:
         shutterspeed_config = config.get_child_by_name('shutterspeed')
         return shutterspeed_config.get_value()
 
-    def capture(self):
+    def capture(self, listener):
         # 拍照
         file_path = self.camera.capture(gp.GP_CAPTURE_IMAGE)
+        listener(CameraEvent.EVENT_CAPTURE_COMPLETE, None)
         jpg = self._save_file(file_path.folder, file_path.name)  # 保存jpg
-        files = self.wait_for_save()  # 保存raw
+        listener(CameraEvent.EVENT_FILE_ADDED, jpg)
+        files = self.wait_for_save(listener=listener)  # 保存raw
         files.insert(0, jpg)
+        listener(CameraEvent.EVENT_FINISH, None)
         return files
 
     # 等待保存事件, 单位: 秒
-    def wait_for_save(self, timeout=10):
+    def wait_for_save(self, listener=None, timeout=10):
         before = time.time()
         after = before
         targets = []
@@ -98,6 +101,8 @@ class Camera:
             if event_type == gp.GP_EVENT_FILE_ADDED:  # 有文件生成
                 target = self._save_file(event_data.folder, event_data.name)
                 targets.append(target)
+                if listener is not None:
+                    listener(CameraEvent.EVENT_FILE_ADDED, target)
             after = time.time()
         return targets
 
@@ -123,12 +128,15 @@ class Camera:
         bulb_config.set_value(1)
         self.camera.set_config(config)
 
-    def blub_stop(self):
+    def blub_stop(self, listener):
         config = self.camera.get_config()
         bulb_config = config.get_child_by_name('bulb')
         bulb_config.set_value(0)
         self.camera.set_config(config)
-        return self.wait_for_save()
+        listener(CameraEvent.EVENT_CAPTURE_COMPLETE, None)
+        files = self.wait_for_save(listener)
+        listener(CameraEvent.EVENT_FINISH, None)
+        return files
 
     # 断开连接
     def disconnect(self):
