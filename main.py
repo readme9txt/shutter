@@ -12,7 +12,7 @@ from camera import Camera, CameraError, CameraEvent
 from config import Config
 from shutter_qt5 import Ui_MainWindow
 
-logging.basicConfig(level=logging.DEBUG, filename='shutter.log', format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+# logging.basicConfig(level=logging.DEBUG, filename='shutter.log', format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 bulb_exposure_time = {
     '1min': 1000 * 60, '1min30s': 1000 * 90, '2min': 1000 * 120, '2min30s': 1000 * 150,
