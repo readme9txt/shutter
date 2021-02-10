@@ -16,6 +16,7 @@ class CameraEvent(Enum):
     EVENT_FILE_ADDED = 3
     EVENT_FOLDER_ADDED = 4
     EVENT_CAPTURE_COMPLETE = 5
+    EVENT_FINISH = 6
 
 
 class Camera:
@@ -63,6 +64,7 @@ class Camera:
                 listener(CameraEvent.EVENT_FOLDER_ADDED, event_data)
             elif event_type == gp.GP_EVENT_CAPTURE_COMPLETE:
                 listener(CameraEvent.EVENT_CAPTURE_COMPLETE, event_data)
+        listener(CameraEvent.EVENT_FINISH, None)
 
     def stop_wait_for_event(self):
         self.wait_event_loop = False

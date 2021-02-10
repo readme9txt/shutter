@@ -103,6 +103,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         elif ui_event == UiEvent.ON_CHECK_EVENT_FINISH:
             self.btn_check_event.setText("检查事件")
             self.btn_start.setEnabled(True)
+            self.btn_check_event.setEnabled(True)
         elif ui_event == UiEvent.ON_BULB_CHECKED:
             self.cbl_exposure.clear()
             self.cbl_exposure.addItems(bulb_exposure_time.keys())
@@ -137,13 +138,12 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             # 启动线程
             self.wait_for_event_t = WaitForEventThread(self.camera)
             self.wait_for_event_t.start()
-            self.wait_for_event_t.event.connect(self.camera_event_listener)
+            self.wait_for_event_t.event.connect(self.wait_for_event_listener)
             self.update_element(UiEvent.ON_CHECK_EVENT_START)
             self.is_checking_event = True
         else:
             self.wait_for_event_t.stop()
-            self.update_element(UiEvent.ON_CHECK_EVENT_FINISH)
-            self.is_checking_event = False
+            self.btn_check_event.setEnabled(False)
 
     def on_action_connect_clicked(self):
         """ 点击连接设备菜单 """
@@ -209,7 +209,7 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
         self.is_capturing = False
         show_error_dialog('Error', message)
 
-    def camera_event_listener(self, event_type, event_data):
+    def wait_for_event_listener(self, event_type, event_data):
         """ 相机事件监听 """
         if event_type == CameraEvent.EVENT_UNKNOWN:
             pass
@@ -223,6 +223,9 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             self.log_output('{} -> EVENT_FOLDER_ADDED'.format(self.camera_model))
         elif event_type == CameraEvent.EVENT_CAPTURE_COMPLETE:
             self.log_output('{} -> EVENT_CAPTURE_COMPLETE'.format(self.camera_model))
+        elif event_type == CameraEvent.EVENT_FINISH:
+            self.update_element(UiEvent.ON_CHECK_EVENT_FINISH)
+            self.is_checking_event = False
 
 
 class WaitForEventThread(QThread):
