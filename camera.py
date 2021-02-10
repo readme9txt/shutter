@@ -1,7 +1,7 @@
 import os
 import time
 import uuid
-from enum import Enum
+from enum import Enum, auto
 
 import gphoto2 as gp
 
@@ -11,12 +11,12 @@ class CameraError(Exception):
 
 
 class CameraEvent(Enum):
-    EVENT_UNKNOWN = 1
-    EVENT_TIMEOUT = 2
-    EVENT_FILE_ADDED = 3
-    EVENT_FOLDER_ADDED = 4
-    EVENT_CAPTURE_COMPLETE = 5
-    EVENT_FINISH = 6
+    EVENT_UNKNOWN = auto()
+    EVENT_TIMEOUT = auto()
+    EVENT_FILE_ADDED = auto()
+    EVENT_FOLDER_ADDED = auto()
+    EVENT_CAPTURE_COMPLETE = auto()
+    EVENT_FINISH = auto()
 
 
 class Camera:

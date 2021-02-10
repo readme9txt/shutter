@@ -1,7 +1,7 @@
 import logging
 import sys
 from datetime import datetime
-from enum import Enum
+from enum import Enum, auto
 
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QThread, pyqtSignal
@@ -31,14 +31,14 @@ exposure_time = {
 
 
 class UiEvent(Enum):
-    ON_DEVICE_CONNECT = 1
-    ON_DEVICE_DISCONNECT = 2
-    ON_CHECK_EVENT_START = 3
-    ON_CHECK_EVENT_FINISH = 4
-    ON_CAPTURE_START = 5
-    ON_CAPTURE_FINISH = 6
-    ON_BULB_CHECKED = 7
-    ON_BULB_NOT_CHECKED = 8
+    ON_DEVICE_CONNECT = auto()
+    ON_DEVICE_DISCONNECT = auto()
+    ON_CHECK_EVENT_START = auto()
+    ON_CHECK_EVENT_FINISH = auto()
+    ON_CAPTURE_START = auto()
+    ON_CAPTURE_FINISH = auto()
+    ON_BULB_CHECKED = auto()
+    ON_BULB_NOT_CHECKED = auto()
 
 
 class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
