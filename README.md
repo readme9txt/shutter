@@ -7,4 +7,5 @@ Ubuntu x86-64, armhf & arm64
 ## 支持的相机
 仅测试过Sony A6400，理论上支持除尼康DSLR、 新版佳能EOS DSLR以外的大部分相机
 ## 使用
+    python3 main.py # 运行  
 点击连接设备后先检查事件，检查事件可以检查是否有未保存的相片
