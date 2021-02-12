@@ -98,9 +98,11 @@ class ShutterWindows(QtWidgets.QMainWindow, Ui_MainWindow):
             self.pb_single.setMaximum(100)
             self.pb_single.setValue(0)
         elif ui_event == UiEvent.ON_CHECK_EVENT_START:
+            self.pb_single.setMaximum(0)
             self.btn_check_event.setText("停止检查")
             self.btn_start.setEnabled(False)
         elif ui_event == UiEvent.ON_CHECK_EVENT_FINISH:
+            self.pb_single.setMaximum(100)
             self.btn_check_event.setText("检查事件")
             self.btn_start.setEnabled(True)
             self.btn_check_event.setEnabled(True)
