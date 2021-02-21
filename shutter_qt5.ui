@@ -25,6 +25,10 @@
   <property name="windowTitle">
    <string>自动曝光</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>shutter.ico</normaloff>shutter.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
