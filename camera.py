@@ -58,7 +58,8 @@ class Camera:
             elif event_type == gp.GP_EVENT_TIMEOUT:
                 listener(CameraEvent.EVENT_TIMEOUT, event_data)
             elif event_type == gp.GP_EVENT_FILE_ADDED:  # 有文件生成
-                target = self._save_file(event_data.folder, event_data.name)
+                file_name = '{}_{}'.format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()), uuid.uuid4().hex)  # 生成文件名
+                target = self._save_file(event_data.folder, event_data.name, file_name)
                 listener(CameraEvent.EVENT_FILE_ADDED, target)
             elif event_type == gp.GP_EVENT_FOLDER_ADDED:
                 listener(CameraEvent.EVENT_FOLDER_ADDED, event_data)
@@ -84,22 +85,23 @@ class Camera:
         # 拍照
         file_path = self.camera.capture(gp.GP_CAPTURE_IMAGE)
         listener(CameraEvent.EVENT_CAPTURE_COMPLETE, None)
-        jpg = self._save_file(file_path.folder, file_path.name)  # 保存jpg
+        file_name = '{}_{}'.format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()), uuid.uuid4().hex)  # 生成文件名
+        jpg = self._save_file(file_path.folder, file_path.name, file_name)  # 保存jpg
         listener(CameraEvent.EVENT_FILE_ADDED, jpg)
-        files = self.wait_for_save(listener=listener)  # 保存raw
+        files = self.wait_for_save(file_name, listener=listener)  # 保存raw
         files.insert(0, jpg)
         listener(CameraEvent.EVENT_FINISH, None)
         return files
 
     # 等待保存事件, 单位: 秒
-    def wait_for_save(self, listener=None, timeout=10):
+    def wait_for_save(self, save_name, listener=None, timeout=10):
         before = time.time()
         after = before
         targets = []
         while after - before < timeout:
             event_type, event_data = self.camera.wait_for_event(500)
             if event_type == gp.GP_EVENT_FILE_ADDED:  # 有文件生成
-                target = self._save_file(event_data.folder, event_data.name)
+                target = self._save_file(event_data.folder, event_data.name, save_name)
                 targets.append(target)
                 if listener is not None:
                     listener(CameraEvent.EVENT_FILE_ADDED, target)
@@ -107,11 +109,10 @@ class Camera:
         return targets
 
     # 保存图片
-    def _save_file(self, folder, name):
+    def _save_file(self, folder, name, save_name):
         camera_file = self.camera.file_get(folder, name, gp.GP_FILE_TYPE_NORMAL)  # 获取照片
-        file_name = '{}_{}'.format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()), uuid.uuid4().hex)  # 生成文件名
         ext = os.path.splitext(name)[-1]
-        target = os.path.join(self.output_dir, '{}{}'.format(file_name, ext))
+        target = os.path.join(self.output_dir, '{}{}'.format(save_name, ext))
         camera_file.save(target)  # 存储
         return target
 
@@ -134,7 +135,8 @@ class Camera:
         bulb_config.set_value(0)
         self.camera.set_config(config)
         listener(CameraEvent.EVENT_CAPTURE_COMPLETE, None)
-        files = self.wait_for_save(listener)
+        file_name = '{}_{}'.format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()), uuid.uuid4().hex)  # 生成文件名
+        files = self.wait_for_save(file_name, listener)
         listener(CameraEvent.EVENT_FINISH, None)
         return files
 
